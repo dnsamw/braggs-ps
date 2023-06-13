@@ -18,6 +18,12 @@ def scan_page(url):
         return vars.bcolors.FAIL + "Sorry the page not found!, check the url and retry."+vars.bcolors.ENDC
 
 
+def write_json_file(dictionary, file_name, file_id):
+    # Writing to sample.json
+    with open(u''+file_name+'_'+file_id+".json", "w") as outfile:
+        json.dump(dictionary, outfile)
+
+
 def braggsOpencart(url):
     soup = scan_page(url)
     if not isinstance(soup, str):
@@ -48,10 +54,12 @@ def braggsOpencart(url):
         # product code
         prod_details_cols = cols[1].find_all("ul", {"class", "list-unstyled"})
         prod_details_list = prod_details_cols[0].find_all("li")
-        product_code = prod_details_list[0].text.strip()
+        product_code = prod_details_list[0].text.replace(
+            "Product Code:", '').strip()
 
         # product availability
-        product_status = prod_details_list[1].text.strip()
+        product_status = prod_details_list[1].text.replace(
+            "Availability:", '').strip()
 
         # product options
         selectors = cols[1].find("div", {"id": "product"}).find_all(
@@ -63,7 +71,8 @@ def braggsOpencart(url):
 
         options = []
         for option in optionsList:
-            options.append(option.text.strip())
+            options.append(option.text.strip().replace(
+                ' ', '').replace('\n', ''))
 
         print(title)
         print("=============================")
@@ -76,6 +85,18 @@ def braggsOpencart(url):
         print("===============OPTIONS==============")
         print(label)
         print(options)
+
+        product_dictionary = {
+            "title": title,
+            "category": category,
+            "thumbnails": thumbnail_link_list,
+            "product_name": product_name,
+            "product_code": product_code,
+            "product_status": product_status,
+            "variant_choice": {"parameter": label, "options": options}
+        }
+
+        write_json_file(product_dictionary, product_name, product_code)
 
     else:
         print(soup)
