@@ -3,6 +3,7 @@ import time
 import requests
 from bs4 import BeautifulSoup
 import json
+from urllib.parse import urlparse
 import variables as vars
 
 
@@ -20,7 +21,12 @@ def scan_page(url):
 
 def write_json_file(dictionary, file_name, file_id):
     # Writing to sample.json
-    with open(u''+file_name+'_'+file_id+".json", "w") as outfile:
+    dir_name = "products"
+    current_dir = os.getcwd()
+    final_dir_name = os.path.join(current_dir, dir_name)
+    file_name = file_name+'_'+file_id
+    save_path = final_dir_name+'/'+file_name
+    with open(save_path+'.json', "w") as outfile:
         json.dump(dictionary, outfile)
 
 
@@ -51,15 +57,30 @@ def braggsOpencart(url):
         cols = content.find_all("div", {"class", "col-sm-6"})
         product_name = cols[1].find("h1").text.strip()
 
+        # product desctiption
+        prod_desc_tab = content.find("div", {"id": "tab-description"})
+        desc_paras = prod_desc_tab.find_all("p")
+        prod_desc_paras = []
+        if desc_paras != []:
+            for para in desc_paras:
+                prod_desc_paras.append(para.text.strip().replace("\n", ""))
+
         # product code
         prod_details_cols = cols[1].find_all("ul", {"class", "list-unstyled"})
         prod_details_list = prod_details_cols[0].find_all("li")
-        product_code = prod_details_list[0].text.replace(
-            "Product Code:", '').strip()
 
-        # product availability
-        product_status = prod_details_list[1].text.replace(
-            "Availability:", '').strip()
+        pd_dic = {}
+
+        for p in prod_details_list:
+            parts_arr = p.text.strip().split(":")
+            pd_dic[parts_arr[0].strip().replace(" ", "_").lower()
+                   ] = parts_arr[1].strip()
+        # product_code = prod_details_list[0].text.replace(
+        #     "Product Code:", '').strip()
+
+        # # product availability
+        # product_status = prod_details_list[1].text.replace(
+        #     "Availability:", '').strip()
 
         # product options
         selectors = cols[1].find("div", {"id": "product"}).find_all(
@@ -79,8 +100,9 @@ def braggsOpencart(url):
         print(category)
         print(thumbnail_link_list)
         print(product_name)
-        print(product_code)
-        print(product_status)
+        print("DESCRIPTION", prod_desc_paras)
+        # print(product_status)
+        print(pd_dic)
         print("")
         print("===============OPTIONS==============")
         print(label)
@@ -91,31 +113,54 @@ def braggsOpencart(url):
             "category": category,
             "thumbnails": thumbnail_link_list,
             "product_name": product_name,
-            "product_code": product_code,
-            "product_status": product_status,
+            "product_description_paragraphs": prod_desc_paras,
+            # "product_code": product_code,
+            # "product_status": product_status,
             "variant_choice": {"parameter": label, "options": options}
         }
 
-        write_json_file(product_dictionary, product_name, product_code)
+        final_dic = {**product_dictionary, **pd_dic}
+        print(final_dic)
+
+        write_json_file(final_dic, product_name, "123")
 
     else:
         print(soup)
 
 
-def router(x):
-    w = x.split('.')
-    if x.find('www.') != -1:
-        site = w[1]
-    else:
-        siteArr = w[0].split("//")
-        site = siteArr[1]
+def router(elements, url):
 
-    if site == 'braggsschoolwear':
+    site = elements["netloc"]
+
+    if site == 'www.braggsschoolwear.co.uk':
         print(site+" is a supported!")
-        braggsOpencart(x)
+        braggsOpencart(url)
     else:
         print(site)
         print("Unsupported site: please contact the developer")
+
+
+def url_parser(url):
+
+    parts = urlparse(url)
+    directories = parts.path.strip('/').split('/')
+    queries = parts.query.strip('&').split('&')
+
+    elements = {
+        'scheme': parts.scheme,
+        'netloc': parts.netloc,
+        'path': parts.path,
+        'params': parts.params,
+        'query': parts.query,
+        'fragment': parts.fragment,
+        'directories': directories,
+        'queries': queries,
+    }
+
+    print("=======================PARSE URL START==========================")
+    print(elements)
+    print("=======================PARSE URL END==========================")
+    return elements
 
 
 state = True
@@ -135,7 +180,9 @@ while state:
             print("program exit")
             state = False
         else:
-            router(str(val).strip())
+            url = str(val).strip()
+            elements = url_parser(url)
+            router(elements, url)
     else:
         print("No input, Downloader terminated!")
         state = False
