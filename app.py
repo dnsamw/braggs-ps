@@ -1,10 +1,14 @@
 import os
+import sys
 import time
 import requests
 from bs4 import BeautifulSoup
 import json
+import csv
 from urllib.parse import urlparse
 import variables as vars
+import productCSVSchema as WOO
+import ast
 
 
 def scan_page(url):
@@ -19,6 +23,21 @@ def scan_page(url):
         return vars.bcolors.FAIL + "Sorry the page not found!, check the url and retry."+vars.bcolors.ENDC
 
 
+def write_csv_file(dictionary, file_name, file_id):
+
+    dir_name = "products_csv"
+    current_dir = os.getcwd()
+    final_dir_name = os.path.join(current_dir, dir_name)
+    file_name = file_name+'_'+file_id
+    save_path = final_dir_name+'/'+file_name
+
+    # data_file = open(save_path+'.csv', 'w', newline='')
+    with open(save_path+'.csv', 'w') as csvfile:
+        w = csv.DictWriter(csvfile, dictionary.keys())
+        w.writeheader()
+        w.writerow(dictionary)
+
+
 def write_json_file(dictionary, file_name, file_id):
     # Writing to sample.json
     dir_name = "products"
@@ -30,7 +49,7 @@ def write_json_file(dictionary, file_name, file_id):
         json.dump(dictionary, outfile)
 
 
-def braggsOpencart(url):
+def braggsOpencartProductScrape(url, product_id):
     soup = scan_page(url)
     if not isinstance(soup, str):
 
@@ -45,13 +64,17 @@ def braggsOpencart(url):
 
         # product images
         content = soup.find("div", {"id": "content"})
-        thumbnails = content.find(
-            "ul", {"class": "thumbnails"}).find_all('a')
+        thumbs_obj = content.find(
+            "ul", {"class": "thumbnails"})  # .find_all('a')
 
-        thumbnail_link_list = []
-        for thumbnail_a in thumbnails:
-            if thumbnail_a['href'].find("https://www.braggsschoolwear.co.uk/image/") != -1:
-                thumbnail_link_list.append(thumbnail_a['href'])
+        if (thumbs_obj != None):
+            thumbnails = thumbs_obj.find_all('a')
+            thumbnail_link_list = []
+            for thumbnail_a in thumbnails:
+                if thumbnail_a['href'].find("https://www.braggsschoolwear.co.uk/image/") != -1:
+                    thumbnail_link_list.append(thumbnail_a['href'])
+        else:
+            thumbnail_link_list = []
 
         # product name
         cols = content.find_all("div", {"class", "col-sm-6"})
@@ -95,21 +118,22 @@ def braggsOpencart(url):
             options.append(option.text.strip().replace(
                 ' ', '').replace('\n', ''))
 
-        print(title)
-        print("=============================")
-        print(category)
-        print(thumbnail_link_list)
-        print(product_name)
-        print("DESCRIPTION", prod_desc_paras)
+        print(vars.bcolors.OKCYAN + title+vars.bcolors.ENDC)
+        # print("=============================")
+        # print(category)
+        # print(thumbnail_link_list)
+        # print(product_name)
+        # print("DESCRIPTION", prod_desc_paras)
         # print(product_status)
-        print(pd_dic)
-        print("")
-        print("===============OPTIONS==============")
-        print(label)
-        print(options)
+        # print(pd_dic)
+        # print("")
+        # print("===============OPTIONS==============")
+        # print(label)
+        # print(options)
 
         product_dictionary = {
-            "title": title,
+            "id": product_id,
+            "name": title,
             "category": category,
             "thumbnails": thumbnail_link_list,
             "product_name": product_name,
@@ -122,19 +146,62 @@ def braggsOpencart(url):
         final_dic = {**product_dictionary, **pd_dic}
         print(final_dic)
 
-        write_json_file(final_dic, product_name, "123")
+        woo_product_dictionary = WOO.toWooCommerceSchema(final_dic)
+
+        # here we pass woo dictionary instead of final dictionary
+        # write_json_file(final_dic, product_name, product_id)
+        # write_json_file(woo_product_dictionary, product_name, product_id)
+        write_csv_file(woo_product_dictionary, product_name, product_id)
 
     else:
         print(soup)
 
 
-def router(elements, url):
+def braggsOpencartCategoryScrape(url):
+    soup = scan_page(url)
+    if not isinstance(soup, str):
+        # category title
+        title = soup.find("title").text.strip().replace("|", "-")
+        print(vars.bcolors.OKGREEN + title + vars.bcolors.ENDC)
+
+        # products
+        content = soup.find("div", {"id": "content"})
+        product_cards = content.find_all("div", {"class", "product-layout"})
+        # print(product_cards)
+        product_links = []
+        for card in product_cards:
+            link = card.find("a")
+            href = link["href"]
+            product_links.append(href)
+
+        for url in product_links:
+            print(vars.bcolors.WARNING +
+                  "Curently Scraping "+vars.bcolors.ENDC, url)
+            braggsOpencartProductScrape(url)
+            for i in range(5, 0, -1):
+                print(vars.bcolors.OKCYAN +
+                      f"Next product will be scraped in {i}"+vars.bcolors.ENDC, end="\r", flush=True)
+                time.sleep(1)
+
+
+def router(elements, url, type):
+    # extractproduct id
+    product_id = elements["queries"][2].replace(
+        "product_id=", "").strip()
 
     site = elements["netloc"]
 
     if site == 'www.braggsschoolwear.co.uk':
         print(site+" is a supported!")
-        braggsOpencart(url)
+        if type == "product":
+            braggsOpencartProductScrape(url, product_id)
+        elif type == "category":
+            # categoryscraper
+            print("CATEGORY SCRAPER")
+            braggsOpencartCategoryScrape(url)
+        else:
+            print("We can't scrape types other than products or categories for now")
+
     else:
         print(site)
         print("Unsupported site: please contact the developer")
@@ -157,15 +224,22 @@ def url_parser(url):
         'queries': queries,
     }
 
-    print("=======================PARSE URL START==========================")
-    print(elements)
-    print("=======================PARSE URL END==========================")
+    # print("=======================PARSE URL START==========================")
+    # print(elements)
+    # print("=======================PARSE URL END==========================")
     return elements
 
 
 state = True
 while state:
-    val = input("Product URL> : ")
+    print("\n")
+    print(vars.bcolors.FAIL + "TODO:"+vars.bcolors.ENDC,
+          "extract product id from query params and append to name")
+    print(vars.bcolors.FAIL + "TODO:"+vars.bcolors.ENDC,
+          "this typy of posts break the loop, fix it", "route=product/product&path=87&product_id=505")
+    print("\n")
+
+    val = input("Product/Category URL> : ")
     if val != "":
         if val == "help":
             vars.getHelp()
@@ -182,7 +256,14 @@ while state:
         else:
             url = str(val).strip()
             elements = url_parser(url)
-            router(elements, url)
+            if elements["queries"][0] == "route=product/category":
+                print("PRODUCT CATEGORY URL")
+                # router(elements, url, "category")
+            elif elements["queries"][0] == "route=product/product":
+                print("SINGLE PRODUCT URL")
+                router(elements, url, "product")
+            else:
+                print("Don't know anything about this URL type yet. Contact Dileepa.")
     else:
         print("No input, Downloader terminated!")
         state = False
