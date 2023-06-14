@@ -1,17 +1,1 @@
-{
-  "id": "618",
-  "name": "Grey Special Pinafore",
-  "category": "Basic Schoolwear",
-  "thumbnails": [
-    "https://www.braggsschoolwear.co.uk/image/cache/catalog/57-500x500.jpg"
-  ],
-  "product_name": "Grey Special Pinafore",
-  "product_description_paragraphs": [],
-  "product_price": "13.95",
-  "variant_choice": {
-    "parameter": "Size",
-    "options": ["Age4/5", "Age5/6(+\u00a32.00)"]
-  },
-  "product_code": "WJP120",
-  "availability": "In Stock"
-}
+{"id": "618", "name": "Grey Special Pinafore", "category": "Basic Schoolwear", "thumbnails": ["https://www.braggsschoolwear.co.uk/image/cache/catalog/57-500x500.jpg"], "product_name": "Grey Special Pinafore", "product_description_paragraphs": [], "product_price": "13.95", "variant_choice": {"parameter": "Size", "options": ["Age4/5", "Age5/6(+\u00a32.00)"]}, "product_code": "WJP120", "availability": "In Stock"}

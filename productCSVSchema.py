@@ -1,3 +1,8 @@
+import os
+import pandas as pd
+from datetime import datetime
+
+
 def createParetProduct(product_dict):
     # assume sku = product code in braggs - PLEASE CONFIRM!!
     sku = product_dict["product_code"]
@@ -65,10 +70,6 @@ def createParetProduct(product_dict):
         "Attribute 1 visible": 1,
         "Attribute 1 global": 1,
         "Meta: _wpcom_is_markdown": 1,
-        "Download 1 name": "",
-        "Download 1 URL": "",
-        "Download 2 name": "",
-        "Download 2 URL": ""
     }
 
     woo_dict["Attribute 1 name"] = product_dict["variant_choice"]["parameter"]
@@ -76,6 +77,40 @@ def createParetProduct(product_dict):
         product_dict["variant_choice"]["options"])
 
     return woo_dict
+
+
+def combineCSV():
+    dir_name = "products_csv"
+    current_dir = os.getcwd()
+    final_dir_path = os.path.join(current_dir, dir_name)
+    # list all the files from the directory
+    csv_file_list = os.listdir(final_dir_path)
+    # print(csv_file_list)
+
+    df_append = pd.DataFrame()
+    # append all files together
+    for file in csv_file_list:
+        df_temp = pd.read_csv(final_dir_path+"/"+file,
+                              encoding='unicode_escape')
+        df_append = df_append._append(df_temp, ignore_index=True)
+
+    print(df_append)
+    final_out_dir_path = os.path.join(current_dir, "output_csv")
+    # datetime object containing current date and time
+    now = datetime.now()
+
+    print("now =", now)
+
+    # dd/mm/YY H:M:S
+    dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
+    print("date and time =", dt_string)
+
+    output_path = final_out_dir_path+'\products-d-' + \
+        dt_string.replace("/", "-").replace(" ",
+                                            "-t-").replace(":", "_")+'.csv'
+    print(output_path)
+
+    df_append.to_csv(output_path)
 
 
 def createProductVariations(product_dict):
@@ -114,15 +149,15 @@ def createProductVariations(product_dict):
         "Stock": 50,
         "Backorders allowed?": 0,
         "Sold individually?": 0,
-        "Weight (lbs)": ".5",
-        "Length (in)": 24,
-        "Width (in)": 1,
-        "Height (in)": 2,
+        "Weight (lbs)": "",
+        "Length (in)": "",
+        "Width (in)": "",
+        "Height (in)": "",
         "Allow customer reviews?": 0,
         "Purchase note": "",
         "Sale price": "",
         "Regular price": float(product_dict["product_price"]),
-        "Categories": f"Schoolwear > {product_dict['category']}",
+        "Categories": "",
         "Tags": "",
         "Shipping class": "",
         "Images": images_string,
@@ -137,13 +172,9 @@ def createProductVariations(product_dict):
         "Position": 0,
         "Attribute 1 name": "",
         "Attribute 1 value(s)": "",
-        "Attribute 1 visible": " 1",
+        "Attribute 1 visible": "",
         "Attribute 1 global": 1,
         "Meta: _wpcom_is_markdown": 1,
-        "Download 1 name": "",
-        "Download 1 URL": "",
-        "Download 2 name": "",
-        "Download 2 URL": ""
     }
 
     product_variations = product_dict["variant_choice"]

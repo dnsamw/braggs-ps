@@ -127,7 +127,7 @@ def braggsOpencartProductScrape(url, product_id):
         options = []
         for option in optionsList:
             options.append(option.text.strip().replace(
-                ' ', '').replace('\n', ''))
+                ' ', '').replace('\n', '').replace("\\u00a", "£"))
 
         print(vars.bcolors.OKCYAN + title+vars.bcolors.ENDC)
 
@@ -157,56 +157,6 @@ def braggsOpencartProductScrape(url, product_id):
         print(soup)
 
 
-def braggsOpencartCategoryScrape(url):
-    soup = scan_page(url)
-    if not isinstance(soup, str):
-        # category title
-        title = soup.find("title").text.strip().replace("|", "-")
-        print(vars.bcolors.OKGREEN + title + vars.bcolors.ENDC)
-
-        # products
-        content = soup.find("div", {"id": "content"})
-        product_cards = content.find_all("div", {"class", "product-layout"})
-        # print(product_cards)
-        product_links = []
-        for card in product_cards:
-            link = card.find("a")
-            href = link["href"]
-            product_links.append(href)
-
-        for url in product_links:
-            print(vars.bcolors.WARNING +
-                  "Curently Scraping "+vars.bcolors.ENDC, url)
-            braggsOpencartProductScrape(url)
-            for i in range(5, 0, -1):
-                print(vars.bcolors.OKCYAN +
-                      f"Next product will be scraped in {i}"+vars.bcolors.ENDC, end="\r", flush=True)
-                time.sleep(1)
-
-
-def router(elements, url, type):
-    # extractproduct id
-    product_id = elements["queries"][2].replace(
-        "product_id=", "").strip()
-
-    site = elements["netloc"]
-
-    if site == 'www.braggsschoolwear.co.uk':
-        print(site+" is a supported!")
-        if type == "product":
-            braggsOpencartProductScrape(url, product_id)
-        elif type == "category":
-            # categoryscraper
-            print("CATEGORY SCRAPER")
-            braggsOpencartCategoryScrape(url)
-        else:
-            print("We can't scrape types other than products or categories for now")
-
-    else:
-        print(site)
-        print("Unsupported site: please contact the developer")
-
-
 def url_parser(url):
 
     parts = urlparse(url)
@@ -230,7 +180,68 @@ def url_parser(url):
     return elements
 
 
+def braggsOpencartCategoryScrape(url):
+    print("CATEGORYURL", url)
+
+    soup = scan_page(url)
+    if not isinstance(soup, str):
+        # category title
+        title = soup.find("title").text.strip().replace("|", "-")
+        print(vars.bcolors.OKGREEN + title + vars.bcolors.ENDC)
+
+        # products
+        content = soup.find("div", {"id": "content"})
+        product_cards = content.find_all("div", {"class", "product-layout"})
+        # print(product_cards)
+        product_links = []
+        for card in product_cards:
+            link = card.find("a")
+            href = link["href"]
+            product_links.append(href)
+
+        for url in product_links:
+            # print("LOOP PRODUCT URL", url)
+            elements = url_parser(url)
+            # extractproduct id
+            # print("LOOPURL", elements["queries"])
+
+            product_id = elements["queries"][2].replace(
+                "product_id=", "").strip()
+
+            print(vars.bcolors.WARNING +
+                  "Curently Scraping "+vars.bcolors.ENDC, url)
+            braggsOpencartProductScrape(url, product_id)
+            for i in range(5, 0, -1):
+                print(vars.bcolors.OKCYAN +
+                      f"Next product will be scraped in {i}"+vars.bcolors.ENDC, end="\r", flush=True)
+                time.sleep(1)
+
+
+def router(elements, url, type):
+
+    site = elements["netloc"]
+
+    if site == 'www.braggsschoolwear.co.uk':
+        print(site+" is a supported!")
+        if type == "product":
+            # extractproduct id
+            product_id = elements["queries"][2].replace(
+                "product_id=", "").strip()
+            braggsOpencartProductScrape(url, product_id)
+        elif type == "category":
+            # categoryscraper
+            print("CATEGORY SCRAPER")
+            braggsOpencartCategoryScrape(url)
+        else:
+            print("We can't scrape types other than products or categories for now")
+
+    else:
+        print(site)
+        print("Unsupported site: please contact the developer")
+
+
 state = True
+# state = False
 while state:
     print("\n")
     print(vars.bcolors.FAIL + "TODO:"+vars.bcolors.ENDC,
@@ -258,7 +269,7 @@ while state:
             elements = url_parser(url)
             if elements["queries"][0] == "route=product/category":
                 print("PRODUCT CATEGORY URL")
-                # router(elements, url, "category")
+                router(elements, url, "category")
             elif elements["queries"][0] == "route=product/product":
                 print("SINGLE PRODUCT URL")
                 router(elements, url, "product")
@@ -267,3 +278,7 @@ while state:
     else:
         print("No input, Downloader terminated!")
         state = False
+
+WOO.combineCSV()
+print(vars.bcolors.OKGREEN +
+      "FINAL CSV GENERATED!! YOU CAN NOW IMPORT IT TOWOO COMMERCE."+vars.bcolors.ENDC)
