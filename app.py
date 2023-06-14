@@ -25,6 +25,8 @@ def scan_page(url):
 
 def write_csv_file(dictionary, file_name, file_id):
 
+    # print("HIIIII", dictionary[0].keys())
+
     dir_name = "products_csv"
     current_dir = os.getcwd()
     final_dir_name = os.path.join(current_dir, dir_name)
@@ -32,10 +34,16 @@ def write_csv_file(dictionary, file_name, file_id):
     save_path = final_dir_name+'/'+file_name
 
     # data_file = open(save_path+'.csv', 'w', newline='')
-    with open(save_path+'.csv', 'w') as csvfile:
-        w = csv.DictWriter(csvfile, dictionary.keys())
-        w.writeheader()
-        w.writerow(dictionary)
+    # with open(save_path+'.csv', 'w') as csvfile:
+    #     w = csv.DictWriter(csvfile, to_csv[0].keys())
+    #     w.writeheader()
+    #     w.writerow(to_csv)
+    keys = dictionary[0].keys()
+
+    with open(save_path+'.csv', 'w', newline='') as output_file:
+        dict_writer = csv.DictWriter(output_file, keys)
+        dict_writer.writeheader()
+        dict_writer.writerows(dictionary)
 
 
 def write_json_file(dictionary, file_name, file_id):
@@ -80,6 +88,9 @@ def braggsOpencartProductScrape(url, product_id):
         cols = content.find_all("div", {"class", "col-sm-6"})
         product_name = cols[1].find("h1").text.strip()
 
+        # product sale price
+        product_price = cols[1].find("h2").text.replace("\u00a3", "").strip()
+
         # product desctiption
         prod_desc_tab = content.find("div", {"id": "tab-description"})
         desc_paras = prod_desc_tab.find_all("p")
@@ -119,17 +130,6 @@ def braggsOpencartProductScrape(url, product_id):
                 ' ', '').replace('\n', ''))
 
         print(vars.bcolors.OKCYAN + title+vars.bcolors.ENDC)
-        # print("=============================")
-        # print(category)
-        # print(thumbnail_link_list)
-        # print(product_name)
-        # print("DESCRIPTION", prod_desc_paras)
-        # print(product_status)
-        # print(pd_dic)
-        # print("")
-        # print("===============OPTIONS==============")
-        # print(label)
-        # print(options)
 
         product_dictionary = {
             "id": product_id,
@@ -138,7 +138,7 @@ def braggsOpencartProductScrape(url, product_id):
             "thumbnails": thumbnail_link_list,
             "product_name": product_name,
             "product_description_paragraphs": prod_desc_paras,
-            # "product_code": product_code,
+            "product_price": product_price,
             # "product_status": product_status,
             "variant_choice": {"parameter": label, "options": options}
         }
@@ -149,7 +149,7 @@ def braggsOpencartProductScrape(url, product_id):
         woo_product_dictionary = WOO.toWooCommerceSchema(final_dic)
 
         # here we pass woo dictionary instead of final dictionary
-        # write_json_file(final_dic, product_name, product_id)
+        write_json_file(final_dic, product_name, product_id)
         # write_json_file(woo_product_dictionary, product_name, product_id)
         write_csv_file(woo_product_dictionary, product_name, product_id)
 
