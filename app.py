@@ -8,7 +8,6 @@ import csv
 from urllib.parse import urlparse
 import variables as vars
 import productCSVSchema as WOO
-import ast
 
 
 def scan_page(url):
@@ -30,7 +29,7 @@ def write_csv_file(dictionary, file_name, file_id):
     dir_name = "products_csv"
     current_dir = os.getcwd()
     final_dir_name = os.path.join(current_dir, dir_name)
-    file_name = file_name+'_'+file_id
+    file_name = file_name.replace("/", "-")+'_'+file_id
     save_path = final_dir_name+'/'+file_name
 
     # data_file = open(save_path+'.csv', 'w', newline='')
@@ -51,7 +50,7 @@ def write_json_file(dictionary, file_name, file_id):
     dir_name = "products"
     current_dir = os.getcwd()
     final_dir_name = os.path.join(current_dir, dir_name)
-    file_name = file_name+'_'+file_id
+    file_name = file_name.replace("/", "-")+'_'+file_id
     save_path = final_dir_name+'/'+file_name
     with open(save_path+'.json', "w") as outfile:
         json.dump(dictionary, outfile)
@@ -239,6 +238,8 @@ def router(elements, url, type):
         print(site)
         print("Unsupported site: please contact the developer")
 
+
+# MAIN LOOP
 
 state = True
 # state = False

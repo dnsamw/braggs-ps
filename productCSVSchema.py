@@ -1,14 +1,47 @@
 import os
+import json
 import pandas as pd
 from datetime import datetime
 
 
+# Dtermin Lst id  for current product id calculaton
+
+
+def readLastId():
+    # Opening JSON file
+    with open('last_id.json', 'r') as openfile:
+
+        # Reading from json file
+        json_object = json.load(openfile)
+
+    return json_object["last_id"]
+
+
+def writeLastId(current_id):
+    # datetime object containing current date and time
+    now = datetime.now()
+
+    print("now =", now)
+
+    # dd/mm/YY H:M:S
+    dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
+
+    last_id_dic = {"last_id": int(
+        current_id), "last_modified_date_time": dt_string}
+
+    with open("last_id.json", "w") as outfile:
+        json.dump(last_id_dic, outfile)
+
+
 def createParetProduct(product_dict):
+
+    # read last id fromthe json file and add 1 to it.
+    parent_id = int(readLastId())+1
+
     # assume sku = product code in braggs - PLEASE CONFIRM!!
     sku = product_dict["product_code"]
 
     # generate short string description
-
     short_description = ""
     for para in product_dict["product_description_paragraphs"]:
         short_description += para.replace(".", "")+". "
@@ -27,7 +60,7 @@ def createParetProduct(product_dict):
         images_string = ','.join(product_dict["thumbnails"])
 
     woo_dict = {
-        "ID": int(product_dict["id"]),
+        "ID": parent_id,
         "Type": "variable",
         "SKU": sku,
         "Name": product_dict["name"],
@@ -76,6 +109,8 @@ def createParetProduct(product_dict):
     woo_dict["Attribute 1 value(s)"] = ','.join(
         product_dict["variant_choice"]["options"])
 
+    # adding 1is not required here for variable products but in cas if in the futre we can use this forsimple products as well
+    writeLastId(parent_id+1)
     return woo_dict
 
 
@@ -116,7 +151,10 @@ def combineCSV():
 def createProductVariations(product_dict):
 
     # calculate variant id
-    parent_id = int(product_dict["id"])
+    # parent_id = int(product_dict["id"]) this methos is absndoned due to duplicate vatiant ids
+
+    # read last id fromthe json file and add 1 to it.
+    parent_id = int(readLastId())+1
 
     # assume sku = product code in braggs - PLEASE CONFIRM!!
     sku = product_dict["product_code"]
@@ -184,10 +222,12 @@ def createProductVariations(product_dict):
         variants = product_variations["options"]
         if len(variants) > 0:
             woo_dict["Attribute 1 name"] = attribute
+            current_id_calc = 0
             for i, variation in enumerate(variants):
                 current_iteration = i+1
-                print(parent_id+current_iteration)
-                woo_dict["ID"] = parent_id + current_iteration
+                current_id_calc = parent_id+current_iteration
+                print('CALCULATED CURENT PRODUCT ID : ', current_id_calc)
+                woo_dict["ID"] = current_id_calc
                 woo_dict["Attribute 1 value(s)"] = variation
                 woo_dict["Tax class"] = "parent"
                 woo_dict["Name"] = product_dict["name"] + \
@@ -196,11 +236,14 @@ def createProductVariations(product_dict):
 
                 product_dict_arr.append(woo_dict.copy())
 
+            # write the last variant id of the loop as the last id
+            writeLastId(current_id_calc)
+
     return product_dict_arr
 
 
 def toWooCommerceSchema(product_dict):
-    print(product_dict)
+    # print(product_dict)
 
     product_dict_arr = []
 
