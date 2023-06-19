@@ -1,1 +1,22 @@
+Reason: Noproduct image {Scraped without picture}
+
 https://www.braggsschoolwear.co.uk/index.php?route=product/product&path=20&product_id=306
+http://www.braggsschoolwear.co.uk/index.php?route=product/product&path=20&product_id=324
+http://www.braggsschoolwear.co.uk/index.php?route=product/product&path=87&product_id=857
+
+Reason: custom fileds {not scraped}
+http://www.braggsschoolwear.co.uk/index.php?route=product/product&path=20&product_id=504
+http://www.braggsschoolwear.co.uk/index.php?route=product/product&path=20&product_id=505
+
+Reason: No variants options 
+https://www.braggsschoolwear.co.uk/index.php?route=product/product&product_id=457&search=Bottle+Cub+Polo+Shirt [DISABLED]
+https://www.braggsschoolwear.co.uk/index.php?route=product/search&search=Bottle%20Cub%20Sweatshirt [DISABLED]
+
+
+School : No products
+https://www.braggsschoolwear.co.uk/index.php?route=product/category&path=20_71_140
+
+Scouts : No products
+https://www.braggsschoolwear.co.uk/index.php?route=product/category&path=86_91
+https://www.braggsschoolwear.co.uk/index.php?route=product/category&path=86_96
+https://www.braggsschoolwear.co.uk/index.php?route=product/category&path=86_92

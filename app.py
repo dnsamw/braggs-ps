@@ -9,6 +9,8 @@ from urllib.parse import urlparse
 import variables as vars
 import productCSVSchema as WOO
 
+import links as LinkList
+
 
 def scan_page(url):
     print(vars.bcolors.OKBLUE + "Scanning page.."+vars.bcolors.ENDC)
@@ -37,12 +39,21 @@ def write_csv_file(dictionary, file_name, file_id):
     #     w = csv.DictWriter(csvfile, to_csv[0].keys())
     #     w.writeheader()
     #     w.writerow(to_csv)
-    keys = dictionary[0].keys()
+    print(type(dictionary))
+    if isinstance(dictionary, list):
+        keys = dictionary[0].keys()
+        with open(save_path+'.csv', 'w', newline='') as output_file:
+            dict_writer = csv.DictWriter(output_file, keys)
+            dict_writer.writeheader()
+            dict_writer.writerows(dictionary)
 
-    with open(save_path+'.csv', 'w', newline='') as output_file:
-        dict_writer = csv.DictWriter(output_file, keys)
-        dict_writer.writeheader()
-        dict_writer.writerows(dictionary)
+    elif isinstance(dictionary, dict):
+        keys = dictionary.keys()
+        print(keys)
+        with open(save_path+'.csv', 'w', newline='') as output_file:
+            dict_writer = csv.DictWriter(output_file, keys)
+            dict_writer.writeheader()
+            dict_writer.writerows([dictionary])
 
 
 def write_json_file(dictionary, file_name, file_id):
@@ -67,7 +78,17 @@ def braggsOpencartProductScrape(url, product_id):
         product = soup.find("div", {"id": "product-product"})
         breadcrumbs = product.find("ul", {"class", "breadcrumb"})
         breadcrumbsList = breadcrumbs.find_all('a')
-        category = breadcrumbsList[1].text.strip()
+        print('BREADCRUMBS', breadcrumbsList)
+
+        breadcrumbs = []
+        category = ""
+        if len(breadcrumbsList) > 2:
+            for breadcrumb in breadcrumbsList:
+                breadcrumbs.append(breadcrumb.text.strip())
+            breadcrumbs.pop()
+            category = ','.join(breadcrumbs)
+        else:
+            category = breadcrumbsList[1].text.strip()
 
         # product images
         content = soup.find("div", {"id": "content"})
@@ -80,8 +101,13 @@ def braggsOpencartProductScrape(url, product_id):
             for thumbnail_a in thumbnails:
                 if thumbnail_a['href'].find("https://www.braggsschoolwear.co.uk/image/") != -1:
                     thumbnail_link_list.append(thumbnail_a['href'])
+                else:
+                    thumbnail_link_list = [
+                        "https://genesisairway.com/wp-content/uploads/2019/05/no-image.jpg"]
+
         else:
-            thumbnail_link_list = []
+            thumbnail_link_list = [
+                "https://genesisairway.com/wp-content/uploads/2019/05/no-image.jpg"]
 
         # product name
         cols = content.find_all("div", {"class", "col-sm-6"})
@@ -115,21 +141,6 @@ def braggsOpencartProductScrape(url, product_id):
         # product_status = prod_details_list[1].text.replace(
         #     "Availability:", '').strip()
 
-        # product options
-        selectors = cols[1].find("div", {"id": "product"}).find_all(
-            "div", {"class", "form-group"})
-
-        label = selectors[0].find("label").text.strip()
-        optionsList = selectors[0].find_all("option")
-        optionsList.pop(0)  # remove 1st item which is --- Please Select ---
-
-        options = []
-        for option in optionsList:
-            options.append(option.text.strip().replace(
-                ' ', '').replace('\n', '').replace("\\u00a", "£"))
-
-        print(vars.bcolors.OKCYAN + title+vars.bcolors.ENDC)
-
         product_dictionary = {
             "id": product_id,
             "name": title,
@@ -139,8 +150,32 @@ def braggsOpencartProductScrape(url, product_id):
             "product_description_paragraphs": prod_desc_paras,
             "product_price": product_price,
             # "product_status": product_status,
-            "variant_choice": {"parameter": label, "options": options}
+            "variant_choice": {"parameter": "", "options": ""}
         }
+
+        # product options
+        selectors = cols[1].find("div", {"id": "product"}).find_all(
+            "div", {"class", "form-group"})
+
+        optionsList = selectors[0].find_all("option")
+
+        if len(optionsList) > 1:
+            # remove 1st item which is --- Please Select ---
+            optionsList.pop(0)
+            label = selectors[0].find("label").text.strip()
+            product_dictionary["variant_choice"]["parameter"] = label
+
+            # extract all the options
+            options = []
+            for option in optionsList:
+                options.append(option.text.strip().replace(
+                    ' ', '').replace('\n', '').replace("\\u00a", "£"))
+
+            product_dictionary["variant_choice"]["options"] = options
+        else:
+            product_dictionary["variant_choice"] = {}
+
+        print(vars.bcolors.OKCYAN + title+vars.bcolors.ENDC)
 
         final_dic = {**product_dictionary, **pd_dic}
         print(final_dic)
@@ -241,8 +276,8 @@ def router(elements, url, type):
 
 # MAIN LOOP
 
-state = True
-# state = False
+# state = True
+state = False
 while state:
     print("\n")
     print(vars.bcolors.FAIL + "TODO:"+vars.bcolors.ENDC,
@@ -279,6 +314,40 @@ while state:
     else:
         print("No input, Downloader terminated!")
         state = False
+
+
+def linkLoop(val):
+    if val != "":
+        if val == "help":
+            vars.getHelp()
+        elif val == "version":
+            print(vars.bcolors.OKGREEN + "\ndnsamScraper" +
+                  vars.bcolors.ENDC + " v1.0 - june 2023.\n")
+        elif val == "info":
+            vars.getInfo()
+        elif val == "list":
+            vars.getList()
+        elif val == "exit" or val == "x":
+            print("program exit")
+            state = False
+        else:
+            url = str(val).strip()
+            elements = url_parser(url)
+            if elements["queries"][0] == "route=product/category":
+                print("PRODUCT CATEGORY URL")
+                router(elements, url, "category")
+            elif elements["queries"][0] == "route=product/product":
+                print("SINGLE PRODUCT URL")
+                router(elements, url, "product")
+            else:
+                print("Don't know anything about this URL type yet. Contact Dileepa.")
+    else:
+        print("No input, Downloader terminated!")
+
+
+for url in LinkList.PATH_LINKS:
+    print(url)
+    linkLoop(url)
 
 WOO.combineCSV()
 print(vars.bcolors.OKGREEN +

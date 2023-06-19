@@ -105,9 +105,14 @@ def createParetProduct(product_dict):
         "Meta: _wpcom_is_markdown": 1,
     }
 
-    woo_dict["Attribute 1 name"] = product_dict["variant_choice"]["parameter"]
-    woo_dict["Attribute 1 value(s)"] = ','.join(
-        product_dict["variant_choice"]["options"])
+    if product_dict["variant_choice"] != {}:
+        woo_dict["Attribute 1 name"] = product_dict["variant_choice"]["parameter"]
+        woo_dict["Attribute 1 value(s)"] = ','.join(
+            product_dict["variant_choice"]["options"])
+    else:
+        woo_dict["Type"] = "simple"
+        woo_dict["Attribute 1 visible"] = ""
+        woo_dict["Attribute 1 global"] = ""
 
     # adding 1is not required here for variable products but in cas if in the futre we can use this forsimple products as well
     writeLastId(parent_id+1)
@@ -255,5 +260,6 @@ def toWooCommerceSchema(product_dict):
         product_dict_arr.append(createParetProduct(product_dict))
     else:
         product_type = "simple"
+        product_dict_arr = createParetProduct(product_dict)
 
     return product_dict_arr
